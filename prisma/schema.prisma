@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admins {
+  id         Int       @id @default(autoincrement())
+  name       String?   @db.VarChar(100)
+  email      String?   @unique(map: "email") @db.VarChar(100)
+  password   String?   @db.VarChar(255)
+  created_at DateTime? @db.DateTime(0)
+}
+
+model applications {
+  id               Int                  @id @default(autoincrement())
+  student_id       Int?
+  job_id           Int?
+  status           applications_status?
+  applied_at       DateTime?            @db.DateTime(0)
+  student_profiles student_profiles?    @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "applications_ibfk_1")
+  job_posts        job_posts?           @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "applications_ibfk_2")
+
+  @@index([job_id], map: "job_id")
+  @@index([student_id], map: "student_id")
+}
+
+model company_profiles {
+  id           Int         @id @default(autoincrement())
+  user_id      Int?
+  company_name String?     @db.VarChar(150)
+  description  String?     @db.Text
+  location     String?     @db.VarChar(100)
+  users        users?      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "company_profiles_ibfk_1")
+  job_posts    job_posts[]
+
+  @@index([user_id], map: "user_id")
+}
+
+model job_posts {
+  id                   Int                     @id @default(autoincrement())
+  company_id           Int?
+  job_title            String?                 @db.VarChar(150)
+  job_description      String?                 @db.Text
+  location_city        String?                 @db.VarChar(100)
+  required_skills      String?                 @db.Text
+  required_language    String?                 @db.VarChar(100)
+  stipend              String?                 @db.VarChar(100)
+  duration             String?                 @db.VarChar(100)
+  application_deadline DateTime?               @db.Date
+  number_of_openings   Int?
+  created_at           DateTime?               @db.DateTime(0)
+  status               job_posts_status?
+  applications         applications[]
+  company_profiles     company_profiles?       @relation(fields: [company_id], references: [id], onUpdate: Restrict, map: "job_posts_ibfk_1")
+
+  @@index([company_id], map: "company_id")
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  message    String?   @db.Text
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @db.DateTime(0)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "notifications_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model student_profiles {
+  id           Int            @id @default(autoincrement())
+  user_id      Int?
+  education    String?        @db.Text
+  skills       String?        @db.Text
+  language     String?        @db.Text
+  interests    String?        @db.Text
+  resume_url   String?        @db.VarChar(255)
+  applications applications[]
+  certificates Certificate[]
+  users        users?         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "student_profiles_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model teacher_profiles {
+  id      Int    @id @default(autoincrement())
+  user_id Int?
+  users   users? @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "teacher_profiles_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model users {
+  id               Int                @id @default(autoincrement())
+  name             String?            @db.VarChar(100)
+  username         String?            @unique
+  email            String?            @unique(map: "email") @db.VarChar(100)
+  password         String?            @db.VarChar(255)
+  role             users_role?
+  created_at       DateTime?          @db.DateTime(0)
+  company_profiles company_profiles[]
+  notifications    notifications[]
+  student_profiles student_profiles[]
+  teacher_profiles teacher_profiles[]
+}
+
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  title     String
+  issuedBy  String
+  date      DateTime
+  url       String?
+
+  student student_profiles @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+enum applications_status {
+  pending
+  accepted
+  rejected
+}
+
+enum users_role {
+  student
+  teacher
+  company
+}
+
+enum job_posts_status {
+  pending
+  approved
+  removed
+}
